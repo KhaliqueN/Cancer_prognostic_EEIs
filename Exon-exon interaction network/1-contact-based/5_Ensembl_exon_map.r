@@ -111,7 +111,7 @@ ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirr
 attrs <- c('ensembl_gene_id', 'ensembl_transcript_id', 'ensembl_peptide_id','transcript_biotype', 'uniprotswissprot')
 ####################################################################################
 
-priassm <- '../data/Homo_sapiens.GRCh38.dna.primary_assembly_renamed.fa'
+priassm <- '../data/Homo_sapiens.GRCh38.dna.primary_assembly.fa'
 genome <- seqinr::read.fasta(priassm)
 
 
@@ -126,6 +126,7 @@ for(i in 1:length(uniprot_pdb[[1]])){
 		to_keep <- c(to_keep, i)
 	}
 }
+
 uniprot_pdb <- uniprot_pdb[to_keep, ]
 upro <- union(uniprot_pdb$PROTEIN1, uniprot_pdb$PROTEIN2)
 updb <- unique(uniprot_pdb$ID)
@@ -142,9 +143,11 @@ bh_transcripts1 <- rep('',length(uniprotids1))
 # countl <- c()
 countl <- rep(0, length(uniprotids1))
 count_gap <- rep(0, length(uniprotids1))
+iden <- rep(0,length(uniprotids1))
 
 for(k in 1:length(uniprotids1)){
 	## 3601 --> global alignment giving some error
+	if(k == 3601){next}
 
 	# length of the uniprot seq
 	uni_seq <- getLength(uniprot_seqs[uniprotids1[k]])
@@ -173,7 +176,9 @@ for(k in 1:length(uniprotids1)){
 					toalign1 <- temp_seq$peptide[which(temp_seq$ensembl_transcript_id == all_transcripts[j])] ## protein seqeunce of first transcript
 					toalign1 <- cleanSeq(toalign1)
 
-					temps <- seqinr::getSequence(genome[paste0('chr',temp_cds[[1]][1])])[[1]]
+					# temps <- seqinr::getSequence(genome[paste0('chr',temp_cds[[1]][1])])[[1]]
+					temps <- seqinr::getSequence(genome[temp_cds[[1]][1]])[[1]]
+
 					allseq <- c()
 					for(i in 1:length(temp_cds[[1]])){
 						start <- temp_cds$V4[i]
@@ -200,6 +205,7 @@ for(k in 1:length(uniprotids1)){
 					gap2 <- length(which(iso2 == '-')) # number of gaps in isoform 2
 					gap <- gap1+gap2
 					count_gap[k] <- gap
+					iden[k] <- 100-Biostrings::pid(xxx, type='PID3')
 					break
 				}
 			}
@@ -210,11 +216,12 @@ for(k in 1:length(uniprotids1)){
 }
 
 countl1 <- count_gap
-
+idenl1 <- iden
 
 bh_transcripts2 <- rep('',length(uniprotids2))
 countl <- c()
 count_gap <- rep(0, length(uniprotids2))
+iden <- rep(0,length(uniprotids1))
 
 for(k in 1:length(uniprotids2)){
 
@@ -245,7 +252,9 @@ for(k in 1:length(uniprotids2)){
 					toalign1 <- temp_seq$peptide[which(temp_seq$ensembl_transcript_id == all_transcripts[j])] ## protein seqeunce of first transcript
 					toalign1 <- cleanSeq(toalign1)
 
-					temps <- seqinr::getSequence(genome[paste0('chr',temp_cds[[1]][1])])[[1]]
+					# temps <- seqinr::getSequence(genome[paste0('chr',temp_cds[[1]][1])])[[1]]
+					temps <- seqinr::getSequence(genome[temp_cds[[1]][1]])[[1]]
+
 					allseq <- c()
 					for(i in 1:length(temp_cds[[1]])){
 						start <- temp_cds$V4[i]
@@ -272,6 +281,7 @@ for(k in 1:length(uniprotids2)){
 					gap2 <- length(which(iso2 == '-')) # number of gaps in isoform 2
 					gap <- gap1+gap2
 					count_gap[k] <- gap
+					iden[k] <- 100-Biostrings::pid(xxx, type='PID3')
 					break
 				}
 			}
@@ -442,17 +452,4 @@ for(k in 1:length(transcript_uni_ids2)){
 	cat('Protein',k,' of ', length(transcript_uni_ids2), ' done\n')
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
 
