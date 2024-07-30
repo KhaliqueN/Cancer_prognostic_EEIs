@@ -4,5 +4,5 @@
 - That is, first execute the scripts within the subfolder "1-contact-based"
 - Then, execute the scripts within the subfolder "2-PISA-based"
 - Lastly, execute the scripts within the subfolder "3-EPPIC-based"
-- Within a subfolder, the scripts should be executed in the numberred order
+- Within a subfolder, the scripts should be executed in the numbered order
 
