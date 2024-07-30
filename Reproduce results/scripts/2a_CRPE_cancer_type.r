@@ -9,7 +9,7 @@ library(ggplot2)
 library(GenomicDataCommons)
 source("eein_cancer_util.r")
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -157,11 +157,11 @@ for(j in 1:length(cancer_type)){
 
 ##--- create networks of different confidence ----
 contact_net <- data.table::fread(paste0('../data/final_EEINs/CONTACT.txt'))
-contact_net <- igraph::graph_from_data_frame(contact_net[,c(3,4)], directed=FALSE)
+contact_net <- igraph::graph_from_data_frame(contact_net[,c(1,2)], directed=FALSE)
 pisa_net <- data.table::fread(paste0('../data/final_EEINs/PISA.txt'))
-pisa_net <- igraph::graph_from_data_frame(pisa_net[,c(3,4)], directed=FALSE)
+pisa_net <- igraph::graph_from_data_frame(pisa_net[,c(1,2)], directed=FALSE)
 eppic_net <- data.table::fread('../data/final_EEINs/EPPIC.txt')
-eppic_net <- igraph::graph_from_data_frame(eppic_net[,c(3,4)], directed=FALSE)
+eppic_net <- igraph::graph_from_data_frame(eppic_net[,c(1,2)], directed=FALSE)
 net_file1 <- igraph::as_data_frame(igraph::union(igraph::union(contact_net, pisa_net), eppic_net))
 
 net_file2 <- igraph::union(igraph::union(igraph::intersection(pisa_net,eppic_net,keep.all.vertices=FALSE),
@@ -175,7 +175,6 @@ net_file3 <- igraph::as_data_frame(net_file3)
 
 allnets <- list(net_file1, net_file2, net_file3)
 net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
-# fig_num <- c('Supplementary_Fig_S5','Supplementary_Fig_S3','Supplementary_Fig_S4')
 
 ##---plot variables --
 x1 <- c(16000, 16000, 3500)
@@ -190,7 +189,7 @@ y3 <- c(6000, 6000, 1400)
 x4 <- c(600, 600, 600)
 y4 <- c(6000, 6000, 1400)
 
-for(ntype in 3:length(allnets)){
+for(ntype in 1:length(allnets)){
 
 	net_file <- allnets[[ntype]]
 	colnames(net_file) <- c('exon1','exon2')
@@ -303,7 +302,7 @@ for(ntype in 3:length(allnets)){
 	axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
 	strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
 	guides(color=guide_legend(title="Cancer type",ncol=3))
-	ggsave(p,filename=paste0(save_dir,"/Supplementary_Fig_S5A.png"),width=4.8, height=2.5, dpi=400)
+	ggsave(p,filename=paste0(save_dir,"/",net_type[ntype],"_correlation_control.png"),width=4.8, height=2.5, dpi=400)
 
 
 	coral <- cor.test(x=pdata$Condition, y=pdata$Survival, method = 'spearman')
@@ -320,7 +319,7 @@ for(ntype in 3:length(allnets)){
 	axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
 	strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
 	guides(color=guide_legend(title="Cancer type",ncol=3))
-	ggsave(p,filename=paste0(save_dir,"/Supplementary_Fig_S5B.png"),width=4.8, height=2.5, dpi=400)
+	ggsave(p,filename=paste0(save_dir,"/",net_type[ntype],"_correlation_condition.png"),width=4.8, height=2.5, dpi=400)
 
 
 	coral <- cor.test(x=pdata$Perturbed, y=pdata$Survival, method = 'spearman')
@@ -337,7 +336,7 @@ for(ntype in 3:length(allnets)){
 	axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
 	strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
 	guides(color=guide_legend(title="Cancer type",ncol=3))
-	ggsave(p,filename=paste0(save_dir,"/Supplementary_Fig_S5C.png"),width=4.8, height=2.5, dpi=400)
+	ggsave(p,filename=paste0(save_dir,"/",net_type[ntype],"_correlation_perturbed.png"),width=4.8, height=2.5, dpi=400)
 
 
 
@@ -355,7 +354,7 @@ for(ntype in 3:length(allnets)){
 	axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
 	strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
 	guides(color=guide_legend(title="Cancer type",ncol=3))
-	ggsave(p,filename=paste0(save_dir,"/Supplementary_Fig_S5D.png"),width=4.8, height=2.5, dpi=400)
+	ggsave(p,filename=paste0(save_dir,"/",net_type[ntype],"_correlation_samples.png"),width=4.8, height=2.5, dpi=400)
 
 }
 

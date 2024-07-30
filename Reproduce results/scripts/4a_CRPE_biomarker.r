@@ -12,7 +12,7 @@ library("survival")
 library("survminer")
 library('biomaRt')
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -20,8 +20,6 @@ cpm_threshold <- 0.5
 pval_thres <- 0.05
 allnets <- gtools::mixedsort(list.files('../data/CRPES',full.names=TRUE))
 net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
-fig_num <- c('Supplementary_Fig_S18','Supplementary_Fig_S17','Figure_7')
-tab_num <- c('C', 'B', 'A')
 
 ##--- map to survival analysis by Smith et al -----
 # ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl")
@@ -151,25 +149,19 @@ save_bioCRPEs <- function(ls1, gs1, c_type){
 qval_thres <- c(0)#, 0.01, 0.02, 0.03, 0.04, 0.05)
 
 gnet <- data.table::fread(paste0('../data/PISA_survival_filt/PISA_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/PISA.txt')
-tempn <- tempn[,c(3,4,1,2)]
-gnet <- mapProtein(gnet[[1]], gnet[[2]], tempn)
+gnet <- mapProtein(gnet[[1]], gnet[[2]], data.table::fread('../data/final_EEINs/PISA.txt'))
 
 enet <- data.table::fread(paste0('../data/EPPIC_survival_filt/EPPIC_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/EPPIC.txt')
-tempn <- tempn[,c(3,4,1,2)]
-enet <- mapProtein(enet[[1]], enet[[2]], tempn)
+enet <- mapProtein(enet[[1]], enet[[2]], data.table::fread('../data/final_EEINs/EPPIC.txt'))
 
 anet <- data.table::fread(paste0('../data/CONTACT_survival_filt/CONTACT_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/CONTACT.txt')
-tempn <- tempn[,c(3,4,1,2)]
-anet <- mapProtein(anet[[1]], anet[[2]], tempn)
+anet <- mapProtein(anet[[1]], anet[[2]], data.table::fread('../data/final_EEINs/CONTACT.txt'))
 
 aq <- rbind(gnet, anet)
 unet <- rbind(aq, enet)
 
 
-for(qq in 1:length(allnets)){
+for(qq in 3:length(allnets)){
 
 	in_dir <- paste0('../data/Final_weighted_networks_filt/',strsplit(basename(allnets[qq]),'[.]')[[1]][1])
 	net_file <- data.table::fread(allnets[qq], header=FALSE)
@@ -182,7 +174,7 @@ for(qq in 1:length(allnets)){
 
     unique_bio <- list()
     counter <- 1
-    wb1 <- openxlsx::createWorkbook(paste0(save_dir,'/Supplementary_Table_S5',tab_num[qq],'.xlsx'))
+    wb1 <- openxlsx::createWorkbook(paste0(save_dir,'/Supplementary_Table_S4_',net_type[qq],'.xlsx'))
 
 	for(gg in 1:length(cancer_type)){
 		c_type <- cancer_type[gg]
@@ -257,7 +249,7 @@ for(qq in 1:length(allnets)){
         ## save excel sheet ----
         openxlsx::addWorksheet(wb1, sheetName = cancer_type[gg])
         openxlsx::writeData(wb1, sheet = cancer_type[gg], sbio)
-        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S5',tab_num[qq],'.xlsx'), overwrite = T)
+        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S4_',net_type[qq],'.xlsx'), overwrite = T)
 	}
 
     pdata <- data.frame(Cancer=cancer, cutoff=as.factor(q_cutoff), biom=pert_bio)
@@ -282,7 +274,7 @@ for(qq in 1:length(allnets)){
     axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
     strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
     guides(fill=guide_legend(title="Survival outcome"))
-    ggsave(p,filename=paste0(save_dir,"/",fig_num[qq],"A.png"),width=5, height=3, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_BioCRPE.png"),width=5, height=3, dpi=400)
 
 
 
@@ -356,7 +348,7 @@ for(qq in 1:length(allnets)){
       theme(axis.text.x = element_text(size = basesize * 0.8,angle = 90, hjust = 0,vjust=0.5, colour = "black"),
         axis.text.y = element_text(size = basesize * 0.8,angle = 0, hjust = 0,vjust=0.5, colour = "black"))+
       guides(fill='none')
-    ggsave(p,filename=paste0(save_dir,'/',fig_num[qq],'B.png'),width=2.5, height=2.5, dpi=400)
+    ggsave(p,filename=paste0(save_dir,'/Biomarker_overlap_',net_type[qq],'.png'),width=2.5, height=2.5, dpi=400)
 
     ##-------
 
@@ -367,64 +359,60 @@ for(qq in 1:length(allnets)){
 
 
     ##--- category of novel biocrpes -----
-    if(qq == 3){
+    known <- c()
+    nknown <- c()
+    unknown <- c()
+    knownp <- c()
+    nknownp <- c()
+    unknownp <- c()
+    x <- c()
+    for(j in 1:length(cancer_type)){
+        biocrpes <- openxlsx::read.xlsx(paste0('../data/Supplementary_Table_S4_processed.xlsx'),j+1)
+        x <- c(x, nrow(biocrpes))
+        if(nrow(biocrpes) != 0){
+            wh1 <- which(biocrpes[[7]] == 'Unknown')
+            wh2 <- which(biocrpes[[8]] == 'Unknown')
+            wha <- length(intersect(wh1, wh2))## both unknown
+            whb <- length(setdiff(union(wh1, wh2), intersect(wh1, wh2))) ## exactly one unknown
+            whc <- nrow(biocrpes)-wha-whb ## both known
 
-        known <- c()
-        nknown <- c()
-        unknown <- c()
-        knownp <- c()
-        nknownp <- c()
-        unknownp <- c()
-        x <- c()
-        for(j in 1:length(cancer_type)){
-            biocrpes <- openxlsx::read.xlsx('../data/Supplementary_Table_S4_processed.xlsx',j+1)
-            x <- c(x, nrow(biocrpes))
-            if(nrow(biocrpes) != 0){
-                wh1 <- which(biocrpes[[7]] == 'Unknown')
-                wh2 <- which(biocrpes[[8]] == 'Unknown')
-                wha <- length(intersect(wh1, wh2))## both unknown
-                whb <- length(setdiff(union(wh1, wh2), intersect(wh1, wh2))) ## exactly one unknown
-                whc <- nrow(biocrpes)-wha-whb ## both known
-
-                known <- c(known, whc)
-                nknown <- c(nknown, whb)
-                unknown <- c(unknown, wha)
-                knownp <- c(knownp, whc/nrow(biocrpes))
-                nknownp <- c(nknownp, whb/nrow(biocrpes))
-                unknownp <- c(unknownp, wha/nrow(biocrpes))
-            }else{
-                known <- c(known, 0)
-                nknown <- c(nknown, 0)
-                unknown <- c(unknown,0)
-                knownp <- c(knownp, 0)
-                nknownp <- c(nknownp, 0)
-                unknownp <- c(unknownp, 0)
-            }
+            known <- c(known, whc)
+            nknown <- c(nknown, whb)
+            unknown <- c(unknown, wha)
+            knownp <- c(knownp, whc/nrow(biocrpes))
+            nknownp <- c(nknownp, whb/nrow(biocrpes))
+            unknownp <- c(unknownp, wha/nrow(biocrpes))
+        }else{
+            known <- c(known, 0)
+            nknown <- c(nknown, 0)
+            unknown <- c(unknown,0)
+            knownp <- c(knownp, 0)
+            nknownp <- c(nknownp, 0)
+            unknownp <- c(unknownp, 0)
         }
-
-        ## category plot
-        pData <- data.frame(A=knownp*100, B=nknownp*100, C=unknownp*100, X=x, Cancer=cancer_type)
-
-        pData1 <- reshape2::melt(pData,id=c('Cancer','X'))
-        pData1$variable <- factor(pData1$variable, levels=c("A", "B", "C"))  # setting level order
-        basesize <- 8
-        ppx <- ggplot(data = pData1, aes(x=Cancer, y=value, fill=variable, group=Cancer)) + geom_bar(stat="identity")+
-        geom_text(aes(label=X, y=100),size=2.5, vjust=0.5, hjust=0, angle=60)+
-        scale_y_continuous(limits=c(0,105), breaks = seq(0, 100, by = 10))+
-        xlab("Cancer type")+ylab("% of biomarker cancer-relevant \nperturbed edges (BioCRPEs)")+
-        scale_fill_manual(labels=c("A" = "Both genes", 
-            "B"="Only one gene", "C"="None of the genes"), 
-        values=c('#fee6ce','#fdae6b','#e6550d'))+
-        theme_bw()+theme(axis.text.x = element_text(size = 1*basesize, angle = 60, vjust=1, hjust=1, colour = "black"),
-            axis.text.y = element_text(size = 1*basesize, angle = 0, colour = "black"),
-            panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
-            axis.line = element_line(colour = "black"))+
-        guides(fill=guide_legend(title="Genes of a BioCRPE known\n to be survival biomarkers"))
-        ggsave(ppx,filename=paste0(save_dir, "/Supplementary_Fig_S19.png"),width=7, height=3, dpi=400)
-
-
     }
-   
+
+    ## category plot
+    pData <- data.frame(A=knownp*100, B=nknownp*100, C=unknownp*100, X=x, Cancer=cancer_type)
+
+    pData1 <- reshape2::melt(pData,id=c('Cancer','X'))
+    pData1$variable <- factor(pData1$variable, levels=c("A", "B", "C"))  # setting level order
+    basesize <- 8
+    ppx <- ggplot(data = pData1, aes(x=Cancer, y=value, fill=variable, group=Cancer)) + geom_bar(stat="identity")+
+    geom_text(aes(label=X, y=100),size=2.5, vjust=0.5, hjust=0, angle=60)+
+    scale_y_continuous(limits=c(0,105), breaks = seq(0, 100, by = 10))+
+    xlab("Cancer type")+ylab("% of biomarker cancer-relevant \nperturbed edges (BioCRPEs)")+
+    scale_fill_manual(labels=c("A" = "Both genes", 
+        "B"="Only one gene", "C"="None of the genes"), 
+    values=c('#fee6ce','#fdae6b','#e6550d'))+
+    theme_bw()+theme(axis.text.x = element_text(size = 1*basesize, angle = 60, vjust=1, hjust=1, colour = "black"),
+        axis.text.y = element_text(size = 1*basesize, angle = 0, colour = "black"),
+        panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"))+
+    guides(fill=guide_legend(title="Genes of a BioCRPE known\n to be survival biomarkers"))
+    ggsave(ppx,filename=paste0(save_dir, "/BioCRPE_categories_",net_type[qq],".png"),width=7, height=3, dpi=400)
+
+
 
 
 }

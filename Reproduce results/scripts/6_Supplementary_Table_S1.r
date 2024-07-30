@@ -48,29 +48,23 @@ cppFunction("List getpropa(CharacterVector ex1, CharacterVector ex2, CharacterVe
 }")
 
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
 cpm_threshold <- 0.5
 allnets <- gtools::mixedsort(list.files('../data/CRPES',full.names=TRUE))
 net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
-tab_num <- c('C', 'B', 'A')
+
 
 gnet <- data.table::fread(paste0('../data/PISA_survival_filt/PISA_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/PISA.txt')
-tempn <- tempn[,c(3,4,1,2)]
-gnet <- mapProtein(gnet[[1]], gnet[[2]], tempn)
+gnet <- mapProtein(gnet[[1]], gnet[[2]], data.table::fread('../data/final_EEINs/PISA.txt'))
 
 enet <- data.table::fread(paste0('../data/EPPIC_survival_filt/EPPIC_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/EPPIC.txt')
-tempn <- tempn[,c(3,4,1,2)]
-enet <- mapProtein(enet[[1]], enet[[2]], tempn)
+enet <- mapProtein(enet[[1]], enet[[2]], data.table::fread('../data/final_EEINs/EPPIC.txt'))
 
 anet <- data.table::fread(paste0('../data/CONTACT_survival_filt/CONTACT_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/CONTACT.txt')
-tempn <- tempn[,c(3,4,1,2)]
-anet <- mapProtein(anet[[1]], anet[[2]], tempn)
+anet <- mapProtein(anet[[1]], anet[[2]], data.table::fread('../data/final_EEINs/CONTACT.txt'))
 
 aq <- rbind(gnet, anet)
 unet <- rbind(aq, enet)
@@ -134,7 +128,8 @@ for(qq in 1:length(allnets)){
         #     '[.]')[[1]][1],'.xlsx'))
         openxlsx::addWorksheet(wb1, sheetName = c_type)
         openxlsx::writeData(wb1, sheet = c_type, xx)
-        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S2',tab_num[qq],'.xlsx'), overwrite = T)
+        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S1_',strsplit(basename(net_type[qq]),
+            '[.]')[[1]][1],'.xlsx'), overwrite = T)
         
     }
 }

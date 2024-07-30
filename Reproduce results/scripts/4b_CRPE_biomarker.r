@@ -10,7 +10,7 @@ library(GenomicDataCommons)
 library("survival")
 library("survminer")
 
-save_dir <- '../results/survival'
+save_dir <- '../results_rep/survival'
 dir.create(save_dir, recursive=TRUE)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -22,7 +22,7 @@ net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
 
 for(qq in 3:length(allnets)){
 
-    biocrpes <- readRDS(paste0('../data/',net_type[qq],"_biocrpe.Rds"))
+    biocrpes <- readRDS(paste0('../results_rep/',net_type[qq],"_biocrpe.Rds"))
 
 
 	for(k in 1:length(cancer_type)){

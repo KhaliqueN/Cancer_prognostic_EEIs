@@ -10,7 +10,7 @@ library(GenomicDataCommons)
 source("eein_cancer_util.r")
 options(warn=0)
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -39,7 +39,6 @@ get_num_edges <- function(tempf_control, tempf_condition, exons, net_file){
         wh1 <- which(net_file$exon1 %in% control_nodes)
         wh2 <- which(net_file$exon2 %in% control_nodes)
         wh <- intersect(wh1, wh2)
-		# print(net_file[1:5,])
         control_net <- net_file[wh, ]
         control_ig <- igraph::graph_from_data_frame(control_net, directed=FALSE)
         control_graph[[k]] <- igraph::ecount(control_ig)
@@ -54,8 +53,7 @@ get_num_edges <- function(tempf_control, tempf_condition, exons, net_file){
         condition_net <- net_file[wh, ]
         condition_ig <- igraph::graph_from_data_frame(condition_net, directed=FALSE)
         condition_graph[[k]] <- igraph::ecount(condition_ig)
-		# print(control_net)
-		# print(paste0('first_func: ',k))
+
         lle <- igraph::difference(control_ig, condition_ig, byname=TRUE)
         lost_graph[[k]] <- lle
         if(igraph::ecount(lle) != 0){
@@ -116,14 +114,25 @@ get_pert_edges <- function(tempf_control, tempf_condition, exons, net_file, alls
 	     condition_net <- net_file[wh, ]
 	     condition_ig <- igraph::graph_from_data_frame(condition_net, directed=FALSE)
 	     condition_graph[[k]] <- igraph::ecount(condition_ig)
-        #  print(paste0('second_func: ',k))
-	     lle <- igraph::difference(control_ig, condition_ig, byname=TRUE)
-	     lost_graph[[k]] <- lle
-	     if(igraph::ecount(lle) != 0){
-	         lled <- as.data.frame(igraph::get.edgelist(lle))
-	         colnames(lled) <- c('exon1', 'exon2')
-	         loss_net <- rbind(loss_net, lled)
-	     }
+
+	     # if(igraph::ecount(condition_ig) == 0){
+	     # 	lle <- control_ig
+	     # 	lost_graph[[k]] <- lle
+		 #     if(igraph::ecount(lle) != 0){
+		 #         lled <- as.data.frame(igraph::get.edgelist(lle))
+		 #         colnames(lled) <- c('exon1', 'exon2')
+		 #         loss_net <- rbind(loss_net, lled)
+		 #     }
+	     # }else if(igraph::ecount(control_ig) != 0 & igraph::ecount(condition_ig) != 0){
+		     lle <- igraph::difference(control_ig, condition_ig, byname=TRUE)
+		     lost_graph[[k]] <- lle
+		     if(igraph::ecount(lle) != 0){
+		         lled <- as.data.frame(igraph::get.edgelist(lle))
+		         colnames(lled) <- c('exon1', 'exon2')
+		         loss_net <- rbind(loss_net, lled)
+		     }
+	     # }
+
 
 	     gge <- igraph::difference(condition_ig, control_ig, byname=TRUE)
 	     gained_graph[[k]] <- gge
@@ -158,11 +167,11 @@ for(j in 1:length(cancer_type)){
 
 ##--- create networks of different confidence ----
 contact_net <- data.table::fread(paste0('../data/final_EEINs/CONTACT.txt'))
-contact_net <- igraph::graph_from_data_frame(contact_net[,c(3,4)], directed=FALSE)
+contact_net <- igraph::graph_from_data_frame(contact_net[,c(1,2)], directed=FALSE)
 pisa_net <- data.table::fread(paste0('../data/final_EEINs/PISA.txt'))
-pisa_net <- igraph::graph_from_data_frame(pisa_net[,c(3,4)], directed=FALSE)
+pisa_net <- igraph::graph_from_data_frame(pisa_net[,c(1,2)], directed=FALSE)
 eppic_net <- data.table::fread('../data/final_EEINs/EPPIC.txt')
-eppic_net <- igraph::graph_from_data_frame(eppic_net[,c(3,4)], directed=FALSE)
+eppic_net <- igraph::graph_from_data_frame(eppic_net[,c(1,2)], directed=FALSE)
 net_file1 <- igraph::as_data_frame(igraph::union(igraph::union(contact_net, pisa_net), eppic_net))
 
 net_file2 <- igraph::union(igraph::union(igraph::intersection(pisa_net,eppic_net,keep.all.vertices=FALSE),

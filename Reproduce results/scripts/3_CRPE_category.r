@@ -18,7 +18,7 @@ library(data.table)
 library(ggplot2)
 library(RColorBrewer)
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -28,7 +28,6 @@ pval_thres <- 0.05
 allnets <- gtools::mixedsort(list.files('../data/CRPES',full.names=TRUE))
 
 net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
-fig_num <- c('Supplementary_Fig_S16','Supplementary_Fig_S15','Figure_6')
 
 a <- c()
 b <- c()
@@ -145,6 +144,6 @@ for(k in 1:length(allnets)){
         panel.grid.major = element_blank(),panel.grid.minor = element_blank(),
         axis.line = element_line(colour = "black"))+
     guides(fill=guide_legend(title="Edge category"))
-    ggsave(ppx,filename=paste0(save_dir, "/",fig_num[k],".png"),width=7, height=3, dpi=400)
+    ggsave(ppx,filename=paste0(save_dir, "/CRPE_categories_",net_type[k],".png"),width=7, height=3, dpi=400)
 
 }

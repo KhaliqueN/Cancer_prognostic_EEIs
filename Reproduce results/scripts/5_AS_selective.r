@@ -51,7 +51,7 @@ cppFunction("List getprop(CharacterVector ex1, CharacterVector ex2, CharacterVec
 }")
 
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -59,23 +59,15 @@ cpm_threshold <- 0.5
 pval_thres <- 0.05
 allnets <- gtools::mixedsort(list.files('../data/CRPES',full.names=TRUE))
 net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
-fig_num <- c('Supplementary_Fig_S9','Supplementary_Fig_S8','Figure_4')
-tab_num <- c('C', 'B', 'A')
 
 gnet <- data.table::fread(paste0('../data/PISA_survival_filt/PISA_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/PISA.txt')
-tempn <- tempn[,c(3,4,1,2)]
-gnet <- mapProtein(gnet[[1]], gnet[[2]], tempn)
+gnet <- mapProtein(gnet[[1]], gnet[[2]], data.table::fread('../data/final_EEINs/PISA.txt'))
 
 enet <- data.table::fread(paste0('../data/EPPIC_survival_filt/EPPIC_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/EPPIC.txt')
-tempn <- tempn[,c(3,4,1,2)]
-enet <- mapProtein(enet[[1]], enet[[2]], tempn)
+enet <- mapProtein(enet[[1]], enet[[2]], data.table::fread('../data/final_EEINs/EPPIC.txt'))
 
 anet <- data.table::fread(paste0('../data/CONTACT_survival_filt/CONTACT_net_final_',cpm_threshold,'.txt'), header=FALSE)
-tempn <- data.table::fread('../data/final_EEINs/CONTACT.txt')
-tempn <- tempn[,c(3,4,1,2)]
-anet <- mapProtein(anet[[1]], anet[[2]], tempn)
+anet <- mapProtein(anet[[1]], anet[[2]], data.table::fread('../data/final_EEINs/CONTACT.txt'))
 
 aq <- rbind(gnet, anet)
 unet <- rbind(aq, enet)
@@ -118,7 +110,7 @@ for(qq in 1:length(allnets)){
     fdata <- data.frame(matrix(ncol=8, nrow=0))
     qdata <- data.frame(matrix(ncol=3, nrow=0))
 
-    wb1 <- openxlsx::createWorkbook(paste0(save_dir,'/Supplementary_Table_S3',tab_num[qq],'.xlsx'))
+    wb1 <- openxlsx::createWorkbook(paste0(save_dir,'/Supplementary_Table_S2_',net_type[qq],'.xlsx'))
     mdn <- c()
 
     for(k in 1:length(cancer_type)){
@@ -247,7 +239,7 @@ for(qq in 1:length(allnets)){
         ## save excel sheet ----
         openxlsx::addWorksheet(wb1, sheetName = cancer_type[k])
         openxlsx::writeData(wb1, sheet = cancer_type[k], save_ex)
-        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S3',tab_num[qq],'.xlsx'), overwrite = T)
+        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S2_',net_type[qq],'.xlsx'), overwrite = T)
     }
 
 
@@ -268,14 +260,14 @@ for(qq in 1:length(allnets)){
     basesize <- 12
     p <- p + theme_bw(base_size = basesize * 0.8) +
     scale_x_discrete(name="Cancer type") + 
-    scale_y_continuous(name="# of cancer relevant \nperturbed egdes (CRPEs) in \n partially perturbed protein complexes", limits=c(0,(max(pdatax$Number_of_EEIs))+ufl)) +
+    scale_y_continuous(name="# of AS-selective cancer \nrelevant perturbed egdes (CRPEs)", limits=c(0,(max(pdatax$Number_of_EEIs))+ufl)) +
     geom_text(aes(label=Number_of_EEIs), position=position_dodge(width=0.9),hjust=0, vjust=0, angle=75, size=3)+
     # scale_fill_manual(values=c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#ffff99','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#e31a1c','#b15928','black','#9e0142','#053061'))+
     theme(axis.text.x = element_text(size = basesize * 0.6, angle = 60, hjust = 0.5,vjust=0.5, colour = "black"),
     axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
     strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
     guides(fill='none')#guide_legend(title="Cancer type",ncol=2))
-    ggsave(p,filename=paste0(save_dir,"/",fig_num[qq],"B.png"),width=3.5, height=3, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_intEEIs.png"),width=3.5, height=3, dpi=400)
 
 
 
@@ -300,7 +292,7 @@ for(qq in 1:length(allnets)){
     guides(fill='none')#+guides(size=guide_legend(title="# of patients",ncol=1))
 
     # guides(color=guide_legend(title="Cancer type", ncol=2,bycol=TRUE), shape=guide_legend(title='Edge type'))
-    ggsave(ppx,filename=paste0(save_dir,"/",fig_num[qq],"C.png"),width=4.5, height=2.5, dpi=400)
+    ggsave(ppx,filename=paste0(save_dir,"/AS-selective_CRPEs_",net_type[qq],".png"),width=4.5, height=2.5, dpi=400)
 
 
 }

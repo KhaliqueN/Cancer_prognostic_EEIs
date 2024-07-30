@@ -206,8 +206,8 @@ select_edges <- function(int_tab_filt, relevant_chains, input_dir, maps){
 # 1_cpm_variation.r
 # 2b_CRPE_cancer_type.r
 get_survival <- function(c_type, survp){ 
-    tempids <- data.table::fread(paste0('../data/Manifests/',c_type,'_manifest_final.txt'))
-    tempids_oc <- data.table::fread(paste0('../data/Manifests/',c_type,'_manifest_final_allCancer.txt'))
+    tempids <- data.table::fread(paste0('../data/',c_type,'_manifest_final.txt'))
+    tempids_oc <- data.table::fread(paste0('../data/',c_type,'_manifest_final_allCancer.txt'))
     tempids_srv <- rbind(tempids, tempids_oc) ## for which patients to save the survival info
 
     ## get clinical data

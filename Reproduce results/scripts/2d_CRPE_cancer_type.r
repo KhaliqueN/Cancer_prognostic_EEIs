@@ -12,7 +12,7 @@ library(dplyr)
 library(GenomicDataCommons)
 source("eein_cancer_util.r")
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -22,8 +22,6 @@ pval_thres <- 0.05
 allnets <- gtools::mixedsort(list.files('../data/CRPES',full.names=TRUE))
 
 net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
-fig_num <- c('Supplementary_Fig_S14','Supplementary_Fig_S13','Supplementary_Fig_12')
-tab_num <- c('C', 'B', 'A')
 
 gnet <- data.table::fread(paste0('../data/PISA_survival_filt/PISA_net_final_',cpm_threshold,'.txt'), header=FALSE)
 gnet <- mapProtein(gnet[[1]], gnet[[2]], data.table::fread('../data/final_EEINs/PISA.txt'))
@@ -64,31 +62,31 @@ for(qq in 1:length(allnets)){
     net_file1 <- mapProtein(net_file[[1]], net_file[[2]], unet)
     all_kegg <- data.table::fread('../data/all_human_pathways.txt', sep='\t')
     colnames(all_kegg) <- c('ensembl_gene_id','uniprot_id','entrez_id','go_id','pathways_name')
-    all_kegg <- all_kegg[all_kegg$uniprot_id %in% union(net_file1[[3]], net_file1[[4]]), ]
-    # ensembl <- useEnsembl(biomart = "genes", dataset = "hsapiens_gene_ensembl", mirror = "useast")
+    all_keggx <- all_kegg[all_kegg$uniprot_id %in% union(net_file1[[3]], net_file1[[4]]), ]
 
     attrs <- c('ensembl_gene_id', 'ensembl_exon_id')
-    alld <- getBM(attributes=attrs, filters='ensembl_gene_id', values=all_kegg[[1]], mart=ensembl) ##--> CHECK THI AND GO BGSIZE
-    path_name <- rep('',length(alld[[1]]))
-    path_id <- rep('',length(alld[[1]]))
-    for(k in 1:length(all_kegg[[1]])){
-        wh <- which(alld$ensembl_gene_id == all_kegg[[1]][k])
-        if(length(wh > 0)){
-            path_name[wh] <- all_kegg$pathways_name[k]
-            path_id[wh] <- all_kegg$go_id[k]
-        }
+    alld <- getBM(attributes=attrs, filters='ensembl_gene_id', values=all_keggx[[1]], mart=ensembl) 
+
+    ## only keep the exons in my background network -------------------------------------
+    alldx <- alld[alld$ensembl_exon_id %in% union(net_file[[1]], net_file[[2]]), ] 
+
+    path_id <- c()
+    path_name <- c()
+    exonx <- c()
+    for(k in 1:length(alldx[[1]])){
+        wh <- which(all_kegg$ensembl_gene_id == alldx$ensembl_gene_id[k])
+        path_name <- c(path_name, all_kegg$pathways_name[wh])
+        path_id <- c(path_id, all_kegg$go_id[wh])
+        exonx <- c(exonx, rep(alldx$ensembl_exon_id[k], length(wh)))
     }
 
-    alld$pathways_name <- path_name
-    alld$path_id <- path_id
-    alldd <- alld[alld$path_id != '', ]
-    ## only keep the exons in my background network -------------------------------------
-    alldd <- alldd[alldd$ensembl_exon_id %in% union(net_file[[1]], net_file[[2]]), ] 
+    alldd <- data.frame(ensembl_exon_id=exonx, path_id=path_id, pathways_name=path_name)
 
     all_path <- plyr::count(alldd$path_id)
     wh_path <- unique(all_path[which(all_path$freq > 2), ]$x)
-    allkegg <- alldd[alldd$path_id %in% wh_path, ]
-    colnames(allkegg) <- c('ensembl_gene_id','ensembl_exon_id','name_1006','go_id')
+    allkegg <- alldd[alldd$path_id %in% wh_path, ] ### 285 pathways remain for NETHIGH network
+    # colnames(allkegg) <- c('ensembl_gene_id','ensembl_exon_id','name_1006','go_id')
+    colnames(allkegg) <- c('ensembl_exon_id','go_id','name_1006')
     kg_bgSize <- length(unique(allkegg$ensembl_exon_id))
 
     allKE1 <- goEnrich(allkegg, kg_bgSize, all_pert, cancer_type)
@@ -96,7 +94,7 @@ for(qq in 1:length(allnets)){
     allKE <- allKE1[allKE1$qval <= pval_thres, ]
 
     #-- save excel file ---
-    wb1 <- openxlsx::createWorkbook(paste0(save_dir,'/Supplementary_Table_S4',tab_num[qq],'.xlsx'))
+    wb1 <- openxlsx::createWorkbook(paste0(save_dir,'/Supplementary_Table_S3_',net_type[qq],'.xlsx'))
 
     for(k in 1:length(cancer_type)){
 
@@ -106,13 +104,14 @@ for(qq in 1:length(allnets)){
         colnames(temp1a) <- c('Cancer','KEGG ID', 'pvalue', 'KEGG pathway name', 'qvalue')
         openxlsx::addWorksheet(wb1, sheetName = cancer_type[k])
         openxlsx::writeData(wb1, sheet = cancer_type[k], temp1a)
-        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S4',tab_num[qq],'.xlsx'), overwrite = T)
+        openxlsx::saveWorkbook(wb1, paste0(save_dir,'/Supplementary_Table_S3_',net_type[qq],'.xlsx'), overwrite = T)
 
     }
 
     
-
     ####----- Pairwise overlaps of enriched KEGG terms ---------------------------------------------------------------------------------
+    path_bgSize <- length(unique(allkegg$go_id))
+
     c1 <- c()
     c2 <- c()
     value <- c()
@@ -134,8 +133,8 @@ for(qq in 1:length(allnets)){
 
             ovr <- intersect(e1, e2)
             ur <- union(e1, e2)
-            pv <- phyper(length(ovr)-1, length(e1), kg_bgSize-length(e1), length(e2), lower.tail=FALSE)
-            pvu <- phyper(length(ovr), length(e1), kg_bgSize-length(e1), length(e2), lower.tail=TRUE)
+            pv <- phyper(length(ovr)-1, length(e1), path_bgSize-length(e1), length(e2), lower.tail=FALSE)
+            pvu <- phyper(length(ovr), length(e1), path_bgSize-length(e1), length(e2), lower.tail=TRUE)
 
             if(length(e1) < length(e2)){
                 tempo <- length(ovr)/length(e1)
@@ -180,7 +179,7 @@ for(qq in 1:length(allnets)){
       theme(axis.text.x = element_text(size = basesize * 0.8,angle = 90, hjust = 0,vjust=0.5, colour = "black"),
         axis.text.y = element_text(size = basesize * 0.8,angle = 0, hjust = 0,vjust=0.5, colour = "black"))#+
       # guides(fill='none')
-    ggsave(p,filename=paste0(save_dir,'/KEGG_overlap_',fig_num[qq],'B.png'),width=4.5, height=3, dpi=300)
+    ggsave(p,filename=paste0(save_dir,'/KEGG_overlap_',net_type[qq],'.png'),width=4.5, height=3, dpi=300)
 
 
 
@@ -208,12 +207,12 @@ for(qq in 1:length(allnets)){
     p <- p + theme_bw(base_size = basesize * 0.8) +
     scale_x_discrete(name="Cancer type") + 
     scale_y_continuous(name="# of uniquely enriched \nKEGG pathways", limits=c(0,(max(tempg$count))+2)) +
-    geom_text(aes(label=count), position=position_dodge(width=0.9),hjust=0, vjust=0, angle=0, size=3)+
+    geom_text(aes(label=count), position=position_dodge(width=0.9),hjust=0.5, vjust=0, angle=0, size=3)+
     theme(axis.text.x = element_text(size = basesize * 0.6, angle = 60, hjust = 0.5,vjust=0.5, colour = "black"),
     axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
     strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
     guides(fill='none')#guide_legend(title="Cancer type",ncol=2))
-    ggsave(p,filename=paste0(save_dir,"/",fig_num[qq],"A.png"),width=3.5, height=3, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_unique_KEGG.png"),width=3.5, height=3, dpi=400)
 
 
-  
+  }

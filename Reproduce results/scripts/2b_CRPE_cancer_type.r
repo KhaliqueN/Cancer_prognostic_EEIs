@@ -1,5 +1,7 @@
 ##############################################################################################
 # Purpose: Get perturbed EEIs and PPIs
+# This is to test for why there is significantly high numbers of cancer relevant edges in KIRC
+## Are thre any collection of PPIs that over-represnets the cancer relevant edges?
 ## Splicing events from --> Kahles et al. Comprehensive Analysis of Alternative Splicing Across Tumors from 8,705 Patients, Cancer Cell, Volume 34, Issue 2, 2018
 ## Mutations from -->  Pan-cancer analysis of whole genomes (https://www.nature.com/articles/s41586-020-1969-6#MOESM3) supplementary table S1
 ## 
@@ -11,7 +13,7 @@ library(ggplot2)
 library(RColorBrewer)
 source("eein_cancer_util.r")
 
-save_dir <- '../results'
+save_dir <- '../results_rep'
 dir.create(save_dir)
 
 cancer_type <- gtools::mixedsort(c('BLCA', 'BRCA', 'KIRC', 'HNSC', 'KIRP', 'LIHC', 'LUAD', 'LUSC', 'UCEC', 'THCA', 'COAD', 'PRAD', 'KICH', 'STAD', 'ESCA'))
@@ -21,9 +23,6 @@ pval_thres <- 0.05
 allnets <- gtools::mixedsort(list.files('../data/CRPES',full.names=TRUE))
 
 net_type <- c('NETLOW', 'NETMEDIUM', 'NETHIGH')
-fig_num <- c('Supplementary_Fig_S7','Supplementary_Fig_S6','Figure_3')
-fig_numm <- c('Supplementary_Fig_S9','Supplementary_Fig_S8','Figure_4')
-fig_nummx <- c('Supplementary_Fig_S11','Supplementary_Fig_S10','Figure_5')
 
 gnet <- data.table::fread(paste0('../data/PISA_survival_filt/PISA_net_final_',cpm_threshold,'.txt'), header=FALSE)
 gnet <- mapProtein(gnet[[1]], gnet[[2]], data.table::fread('../data/final_EEINs/PISA.txt'))
@@ -176,7 +175,7 @@ for(qq in 1:length(allnets)){
     axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
     strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
     guides(fill='none')#guide_legend(title="Cancer type",ncol=2))
-    ggsave(p,filename=paste0(save_dir,"/",fig_num[qq],"A.png"),width=3.5, height=3, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_CRPE.png"),width=3.5, height=3, dpi=400)
 
 
     ### number of patients to which the perturbed edges belong -------
@@ -197,7 +196,7 @@ for(qq in 1:length(allnets)){
         axis.text.y = element_text(size = 8, angle = 0, colour = "black"))+#,
         # panel.grid.major = element_blank(),panel.grid.minor = element_blank())+
     guides(fill='none')#+guides(size=guide_legend(title="# of patients",ncol=1))
-    ggsave(p,filename=paste0(save_dir,"/",fig_num[qq],"B.png"),width=4.5, height=2.5, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_pateint_violin.png"),width=4.5, height=2.5, dpi=400)
 
 
     ### ---------------------- correlation with known number of cancer type-specific splicing events ------------------
@@ -232,12 +231,17 @@ for(qq in 1:length(allnets)){
     axis.text.y = element_text(size = basesize * 0.8, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
     strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
     guides(color=guide_legend(title="Cancer type",ncol=3))
-    ggsave(p,filename=paste0(save_dir,"/",fig_numm[qq],"A.png"),width=4.5, height=2.5, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_per_cancer_splicingSurvival.png"),width=4.5, height=2.5, dpi=400)
 
 
     ### ---------------------- correlation with known numbers of genes significantly correlated with survival ------------------
     survival <- data.table::fread('../data/survival_analysis_all.txt', sep='\t')
-    survs <- survival[,-1]
+    alldd <- data.table::fread('../data/gene_map.txt')
+    alldd <- alldd[,-3]
+    colnames(alldd) <- c('Gene','Uniprot')
+    survival <- survival[survival$Gene %in% alldd[[1]], ]
+    survival <- as.data.frame(merge(survival, alldd,by='Gene'))
+    survs <- survival[,-c(1,length(survival))]
 
     signif_can <- sapply(survs, function(x) length(which(x > 1.96 | x < -1.96))) ## 3.1 in case of the 0.001 p-value
     survival_data <- data.frame(Cancer=names(signif_can), count=signif_can)
@@ -254,14 +258,14 @@ for(qq in 1:length(allnets)){
     basesize <- 10
     p <- p + theme_bw(base_size = basesize * 0.8) +
     scale_x_continuous(name="# of genes significantly \nassociated with survival", limits=c(0,max(pdata$genes))) + 
-    geom_text(aes(x=5000,y=temp_y_limit, label=paste0('Spearman correlation: ',signif(coral1$estimate[[1]],3),'\np-value: ',signif(coral1$p.value,3))), size=3,show.legend = FALSE)+
+    geom_text(aes(x=4500,y=temp_y_limit, label=paste0('Spearman correlation: ',signif(coral1$estimate[[1]],3),'\np-value: ',signif(coral1$p.value,3))), size=3,show.legend = FALSE)+
     scale_y_continuous(name="# of cancer-relevant \nperturbed edges (CRPEs)", limits=c(0,max(pdata$count))) +
     scale_color_manual(values=c('#a6cee3','#1f78b4','#b2df8a','#33a02c','#fb9a99','#ffff99','#fdbf6f','#ff7f00','#cab2d6','#6a3d9a','#e31a1c','#b15928','black','#9e0142','#053061'))+
     theme(axis.text.x = element_text(size = basesize * 0.8, angle = 60, hjust = 0.5,vjust=0.5, colour = "black"),
     axis.text.y = element_text(size = basesize * 0.8, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
     strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
     guides(color=guide_legend(title="Cancer type",ncol=3))
-    ggsave(p,filename=paste0(save_dir,"/",fig_num[qq],"C.png"),width=4.5, height=2.5, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_per_cancer_geneSurvival.png"),width=4.5, height=2.5, dpi=400)
 
     
 
@@ -297,7 +301,7 @@ for(qq in 1:length(allnets)){
     axis.text.y = element_text(size = basesize * 0.6, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
     strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
     guides(fill='none')#guide_legend(title="Cancer type",ncol=2))
-    ggsave(p,filename=paste0(save_dir,"/",fig_nummx[qq],"A.png"),width=3.5, height=3, dpi=400)
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_unique_CRPE.png"),width=3.5, height=3, dpi=400)
 
 
 
@@ -372,8 +376,99 @@ for(qq in 1:length(allnets)){
       geom_text(data=pdata,aes(y=c2,label=val),size=1.8)+
       theme(axis.text.x = element_text(size = basesize * 0.8,angle = 90, hjust = 0,vjust=0, colour = "black"),
         axis.text.y = element_text(size = basesize * 0.8,angle = 0, hjust = 0,vjust=0, colour = "black"))
-    ggsave(p,filename=paste0(save_dir,'/',fig_nummx[qq],'B.png'),width=4.5, height=3, dpi=300)
+    ggsave(p,filename=paste0(save_dir,'/CRPE_edge_overlap_smaller_',net_type[qq],'.png'),width=4.5, height=3, dpi=300)
 
+
+
+
+    ###--- overlap CRPE genes and genes significantly associated with survival in Smith et al.
+
+    survival <- data.table::fread('../data/survival_analysis_all.txt', sep='\t')
+    allc <- colnames(survival)[-1]
+    allgenes <- survival[[1]]## 20,531 genes
+    # alld <- getBM(attributes=attrs, filters='hgnc_symbol', values=allgenes, mart=ensembl) 
+    # alldd <- alld[alld$uniprotswissprot != '',]
+    # alldd <- alldd[alldd$hgnc_symbol != '',]
+    # data.table::fwrite(alldd, '../data/gene_map.txt', row.names=FALSE, sep='\t', quote=FALSE)
+    alldd <- data.table::fread('../data/gene_map.txt')
+    alldd <- alldd[,-3]
+    colnames(alldd) <- c('Gene','Uniprot')
+    survival <- survival[survival$Gene %in% alldd[[1]], ]
+    survival <- merge(survival, alldd,by='Gene')
+    survival <- survival[,-1]
+    bgSize <- length(unique(survival$Uniprot))
+
+    pval <- c()
+    ovr <- c()
+    ovrp <- c()
+    num <- c()
+
+    for(gg in 1:length(cancer_type)){
+
+        c_type <- cancer_type[gg]
+        ##--- get survival results ------------
+        gained_surv <- data.table::fread(paste0('../data/Final_survival_filt/',strsplit(basename(allnets[qq]),'[.]')[[1]][1],
+            '/threshold_',cpm_threshold,'/',c_type,'_Gained_Surv_.txt'))
+        gained_surv$qvalue <- p.adjust(gained_surv$pval, 'fdr')
+        gained_surv1 <- gained_surv[gained_surv$pval <= pval_thres, ]
+        gs <- gained_surv1[,c(1,2,6)]
+        ##-------------------------------------
+        
+        ##--- get survival results ------------
+        lost_surv <- data.table::fread(paste0('../data/Final_survival_filt/',strsplit(basename(allnets[qq]),'[.]')[[1]][1],'/threshold_',cpm_threshold,'/',
+        c_type,'_Lost_Surv_.txt'))
+        lost_surv1 <- lost_surv[lost_surv$pval <= pval_thres, ]
+        ls <- lost_surv1[,c(1,2,6)]
+        ##-------------------------------------
+        gs_ls_u <- rbind(gs,ls)
+        gs_ls_uy <- igraph::graph_from_data_frame(gs_ls_u, directed=FALSE)
+        gs_ls_ux <- igraph::simplify(gs_ls_uy, edge.attr.comb=list(weight="sum"))
+        gs_ls_uz <- igraph::as_data_frame(gs_ls_ux)
+
+        tempxx <- mapProtein(gs_ls_uz[[1]], gs_ls_uz[[2]], unet)
+        crpe <- union(tempxx[[3]], tempxx[[4]])
+
+        ##---significant genes for this cancer type --
+        wh1 <- which(allc == cancer_type[gg])
+        wh2 <- which(survival[[wh1]] > 1.96 | survival[[wh1]] < -1.96) ## 3.1 in case of the 0.001 p-value
+        setA <- length(wh2)
+
+        ##--- hypergeometric test ---
+        sampleSize <- length(intersect(crpe, survival$Uniprot))
+        setB <- length(intersect(crpe,survival$Uniprot[wh2]))
+        hyp <- phyper(setB-1,setA,bgSize-setA, sampleSize,lower.tail = FALSE)
+        pval <- c(pval, hyp)
+        ovr <- c(ovr, setB)
+        ovrp <- c(ovrp, setB/length(crpe))
+        num <- c(num, length(crpe))
+
+    }
+
+    fdr <- p.adjust(pval, 'fdr')
+
+    pdata <- data.frame(Cancer=cancer_type, Num=num, Overlap=ovr, Perct=ovrp*100, FDR=signif(fdr,2))
+    pdata$label <- paste0(pdata$Cancer,' (',pdata$Num,')')
+
+    if(qq != 3){
+        diff <- 150
+    }else{
+        diff <- 50
+    }
+
+    p <- ggplot(pdata, aes(label, Overlap)) + 
+    geom_bar(stat="identity",position=position_dodge())+
+    theme(legend.text=element_text(size=12))
+    basesize <- 12
+    p <- p + theme_bw(base_size = basesize * 0.8) +
+    scale_x_discrete(name="Cancer type") + 
+    scale_y_continuous(name="Overlap # between CRPE genes \n and the genes significantly \nassociated with survival", 
+        limits=c(0,(max(pdata$Overlap))+diff)) +
+    geom_text(aes(label=FDR), position=position_dodge(width=0.9),hjust=0, vjust=0, angle=75, size=3)+
+    theme(axis.text.x = element_text(size = basesize * 0.8, angle = 60, hjust = 1,vjust=1, colour = "black"),
+    axis.text.y = element_text(size = basesize * 0.8, angle = 0, hjust = 0.5,vjust=0.5, colour = "black"), 
+    strip.text = element_text(size = basesize * 0.8), axis.title=element_text(basesize * 0.8))+
+    guides(fill='none')#guide_legend(title="Cancer type",ncol=2))
+    ggsave(p,filename=paste0(save_dir,"/",net_type[qq],"_survivalGenes_overlap.png"),width=4.3, height=4, dpi=400)
 
 
 }
