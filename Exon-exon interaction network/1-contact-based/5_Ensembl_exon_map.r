@@ -119,6 +119,9 @@ genome <- seqinr::read.fasta(priassm)
 # all uniprot ids
 uniprot_pdb <- fread('../data/processed_complex_final.txt', sep='\t', header=TRUE)
 
+# correct for NA chain recognized as a missing value
+uniprot_pdb[is.na(uniprot_pdb)] <- "NA"
+			      
 ## remove the complexes where the proteins map to the same chain as per SIFTS mapping
 to_keep <- c()
 for(i in 1:length(uniprot_pdb[[1]])){
