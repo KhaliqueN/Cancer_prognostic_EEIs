@@ -170,8 +170,7 @@ for(k in 1:length(uniprotids1)){
 				flags <- 0
 				if(temp_sum == uni_seq){
 					flags <- flags+1
-					bh_transcripts1[k] <- all_transcripts[j]
-
+					
 					## global alignment
 					toalign1 <- temp_seq$peptide[which(temp_seq$ensembl_transcript_id == all_transcripts[j])] ## protein seqeunce of first transcript
 					toalign1 <- cleanSeq(toalign1)
@@ -206,7 +205,10 @@ for(k in 1:length(uniprotids1)){
 					gap <- gap1+gap2
 					count_gap[k] <- gap
 					iden[k] <- 100-Biostrings::pid(xxx, type='PID3')
-					break
+					if(iden[k] == 0 && gap == 0){
+						bh_transcripts1[k] <- all_transcripts[j]
+						break
+					}
 				}
 			}
 		}
@@ -221,7 +223,7 @@ idenl1 <- iden
 bh_transcripts2 <- rep('',length(uniprotids2))
 countl <- c()
 count_gap <- rep(0, length(uniprotids2))
-iden <- rep(0,length(uniprotids1))
+iden <- rep(0,length(uniprotids2))
 
 for(k in 1:length(uniprotids2)){
 
@@ -246,7 +248,6 @@ for(k in 1:length(uniprotids2)){
 				flags <- 0
 				if(temp_sum == uni_seq){
 					flags <- flags+1
-					bh_transcripts2[k] <- all_transcripts[j]
 
 					## global alignment
 					toalign1 <- temp_seq$peptide[which(temp_seq$ensembl_transcript_id == all_transcripts[j])] ## protein seqeunce of first transcript
@@ -282,7 +283,10 @@ for(k in 1:length(uniprotids2)){
 					gap <- gap1+gap2
 					count_gap[k] <- gap
 					iden[k] <- 100-Biostrings::pid(xxx, type='PID3')
-					break
+					if(iden[k] == 0 && gap == 0){
+						bh_transcripts2[k] <- all_transcripts[j]
+						break
+					}
 				}
 			}
 		}
