@@ -59,7 +59,7 @@ TCGAconsideredCancerTypes <- function(){
 
         ##---- only RNA seq aligned to genome data
         temp_bam <- ge_manifest1
-        wh3 <- which(temp_bam$filename %like% 'rna_seq.genomic')
+        wh3 <- which(temp_bam$file_name %like% 'rna_seq.genomic')
         temp_bam1 <- temp_bam[wh3, ]
 
         #colnames(temp_bam1) <- c('file_id','filename','md5','size', 'state')
@@ -159,7 +159,7 @@ if(length(c_select) > 0){
 
     ##---- only RNA seq aligned to genome data
     temp_bam <- ge_manifest1
-    wh3 <- which(temp_bam$filename %like% 'rna_seq.genomic')
+    wh3 <- which(temp_bam$file_name %like% 'rna_seq.genomic')
     temp_bam1 <- temp_bam[wh3, ]
 
     # colnames(temp_bam1) <- c('file_id','filename','md5','size', 'state')
