@@ -62,7 +62,9 @@ TCGAconsideredCancerTypes <- function(){
         wh3 <- which(temp_bam$filename %like% 'rna_seq.genomic')
         temp_bam1 <- temp_bam[wh3, ]
 
-        colnames(temp_bam1) <- c('file_id','filename','md5','size', 'state')
+        #colnames(temp_bam1) <- c('file_id','filename','md5','size', 'state')
+        temp_bam1 <- temp_bam1[,c(1,19,12)]
+        colnames(temp_bam1) <- c('file_id','filename','md5')
         sids <- TCGAtranslateID(temp_bam1[[1]])
         temp_bam2 <- merge(temp_bam1, sids, by='file_id')
 
